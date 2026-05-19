@@ -31,6 +31,12 @@ async function run() {
             const result = await roomCollection.find().toArray()
             res.send(result);
         })
+        app.get("/rooms/:ownerId", async(req, res)=>{
+            const {ownerId} = req.params
+            const result = await roomCollection.find({ownerId:ownerId}).toArray()
+            res.send(result)
+        })
+
         app.get("/rooms/:id", async (req, res) => {
             const { id } = req.params
             const result = await roomCollection.findOne({ _id: new ObjectId(id) })
