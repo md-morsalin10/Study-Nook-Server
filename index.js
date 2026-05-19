@@ -25,6 +25,7 @@ async function run() {
         await client.connect();
         const db = client.db("Study-Nook");
         const roomCollection = db.collection('rooms')
+        const bookingCollection =db.collection('bookings')
 
         app.get("/rooms", async(req, res)=>{
             const result = await roomCollection.find().toArray()
