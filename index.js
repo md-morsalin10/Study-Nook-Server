@@ -21,26 +21,34 @@ const client = new MongoClient(uri, {
 
 async function run() {
     try {
-        
+
         await client.connect();
         const db = client.db("Study-Nook");
         const roomCollection = db.collection('rooms')
-        const bookingCollection =db.collection('bookings')
+        const bookingCollection = db.collection('booking')
 
-        app.get("/rooms", async(req, res)=>{
+        app.get("/rooms", async (req, res) => {
             const result = await roomCollection.find().toArray()
             res.send(result);
         })
-        app.get("/rooms/:id", async(req, res)=>{
-            const {id} = req.params
-            const result = await roomCollection.findOne({_id: new ObjectId(id)})
+        app.get("/rooms/:id", async (req, res) => {
+            const { id } = req.params
+            const result = await roomCollection.findOne({ _id: new ObjectId(id) })
             res.send(result)
         })
 
-        app.post("/rooms", async(req, res)=>{
-            const roomData = req.body
-            console.log(roomData, "from server");
+        app.post("/booking", async(req, res)=>{
+            const bookingData = req.body
+            console.log(bookingData, "form server");
             
+            const result = await bookingCollection.insertOne(bookingData)
+            res.send(result)
+        })
+
+        app.post("/rooms", async (req, res) => {
+            const roomData = req.body
+            // console.log(roomData, "from server");
+
             const result = await roomCollection.insertOne(roomData)
             res.send(result)
         })
