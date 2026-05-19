@@ -37,6 +37,12 @@ async function run() {
             res.send(result)
         })
 
+        app.get("/booking/:userId", async(req, res)=>{
+            const {userId} = req.params
+            const result = await bookingCollection.find({userId:userId}).toArray()
+            res.send(result)
+        })
+
         app.post("/booking", async(req, res)=>{
             const bookingData = req.body
             console.log(bookingData, "form server");
