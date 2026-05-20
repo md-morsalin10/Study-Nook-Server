@@ -47,12 +47,16 @@ async function run() {
             const {id}= req.params
             const updatedData = req.body
         
-            
-
             const result = await roomCollection.updateOne(
                 {_id: new ObjectId(id)},
                 {$set:updatedData}
             )
+            res.send(result)
+        })
+
+        app.delete("/rooms/:id", async(req, res)=>{
+            const {id} = req.params
+            const result = await roomCollection.deleteOne({_id: new ObjectId(id)})
             res.send(result)
         })
 
