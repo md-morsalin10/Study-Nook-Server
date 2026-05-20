@@ -31,7 +31,7 @@ async function run() {
             const result = await roomCollection.find().toArray()
             res.send(result);
         })
-        app.get("/rooms/:ownerId", async(req, res)=>{
+        app.get("/my-rooms/:ownerId", async(req, res)=>{
             const {ownerId} = req.params
             const result = await roomCollection.find({ownerId:ownerId}).toArray()
             res.send(result)
@@ -40,6 +40,19 @@ async function run() {
         app.get("/rooms/:id", async (req, res) => {
             const { id } = req.params
             const result = await roomCollection.findOne({ _id: new ObjectId(id) })
+            res.send(result)
+        })
+
+        app.patch("/rooms/:id", async(req, res)=>{
+            const {id}= req.params
+            const updatedData = req.body
+        
+            
+
+            const result = await roomCollection.updateOne(
+                {_id: new ObjectId(id)},
+                {$set:updatedData}
+            )
             res.send(result)
         })
 
