@@ -54,16 +54,33 @@ async function run() {
         const bookingCollection = db.collection('booking')
 
         app.get("/rooms", async (req, res) => {
-            const result = await roomCollection.find().toArray()
+            const { search, amenities, minRate, maxRate } = req.query;
+            let query = {};
+            if (search) {
+                query.name = { $regex: search, $options: "i" }; 
+            }
+            if (amenities) {
+                
+                const amenityArray = amenities.split(",");
+                query.amenities = { $in: amenityArray };
+            }
+
+            if (minRate || maxRate) {
+                query.hourlyRate = {};
+                if (minRate) query.hourlyRate.$gte = Number(minRate);
+                if (maxRate) query.hourlyRate.$lte = Number(maxRate);
+            }
+
+            const result = await roomCollection.find(query).toArray();
             res.send(result);
         })
 
-        app.get("/features", async(req, res)=>{
+        app.get("/features", async (req, res) => {
             const result = await roomCollection.find().sort({ _id: -1 }).limit(6).toArray()
             res.send(result)
         })
 
-        app.get("/my-rooms/:ownerId",verifyToken, async (req, res) => {
+        app.get("/my-rooms/:ownerId", verifyToken, async (req, res) => {
             const { ownerId } = req.params
             const result = await roomCollection.find({ ownerId: ownerId }).toArray()
             res.send(result)
@@ -102,13 +119,13 @@ async function run() {
             res.send(result)
         })
 
-        app.get("/booking/:userId",verifyToken, async (req, res) => {
+        app.get("/booking/:userId", verifyToken, async (req, res) => {
             const { userId } = req.params
             const result = await bookingCollection.find({ userId: userId }).toArray()
             res.send(result)
         })
 
-        app.post("/booking",verifyToken, async (req, res) => {
+        app.post("/booking", verifyToken, async (req, res) => {
             const bookingData = req.body
             console.log(bookingData, "form server");
 
