@@ -1,7 +1,8 @@
 const express = require("express")
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const dotenv = require("dotenv")
-const cors = require('cors')
+const cors = require('cors');
+const { createRemoteJWKSet, jwtVerify } = require("jose-cjs");
 const app = express()
 dotenv.config()
 
@@ -19,6 +20,31 @@ const client = new MongoClient(uri, {
     }
 });
 
+const JWKS = createRemoteJWKSet(
+    new URL('http://localhost:3000/api/auth/jwks')
+)
+
+const verifyToken = async (req, res, next) => {
+    const authHeaders = req?.headers.authorization
+    // console.log(authHeaders);
+    if (!authHeaders) {
+        return res.status(401).send({ message: "unauthorized access" })
+    }
+    const token = authHeaders.split(" ")[1]
+    if (!token) {
+        return res.status(401).send({ message: "unauthorized access" })
+    }
+    // console.log(token);
+    try {
+        const { payload } = await jwtVerify(token, JWKS)
+        console.log(payload);
+        next()
+    }
+    catch (error) {
+        return res.status(401).send({ message: "unauthorized access" })
+    }
+}
+
 async function run() {
     try {
 
@@ -31,45 +57,56 @@ async function run() {
             const result = await roomCollection.find().toArray()
             res.send(result);
         })
-        app.get("/my-rooms/:ownerId", async(req, res)=>{
-            const {ownerId} = req.params
-            const result = await roomCollection.find({ownerId:ownerId}).toArray()
+
+        app.get("/my-rooms/:ownerId", async (req, res) => {
+            const { ownerId } = req.params
+            const result = await roomCollection.find({ ownerId: ownerId }).toArray()
             res.send(result)
         })
 
-        app.get("/rooms/:id", async (req, res) => {
+        app.get("/rooms/:id", verifyToken, async (req, res) => {
             const { id } = req.params
             const result = await roomCollection.findOne({ _id: new ObjectId(id) })
             res.send(result)
         })
 
-        app.patch("/rooms/:id", async(req, res)=>{
-            const {id}= req.params
+        app.patch("/booking/:id", async (req, res) => {
+            const { id } = req.params
+            const { status } = req.body;
+            const result = await bookingCollection.updateOne(
+                { _id: new ObjectId(id) },
+                { $set: { status: status } }
+            );
+            res.send(result);
+        })
+
+        app.patch("/rooms/:id", async (req, res) => {
+            const { id } = req.params
             const updatedData = req.body
-        
+
             const result = await roomCollection.updateOne(
-                {_id: new ObjectId(id)},
-                {$set:updatedData}
+                { _id: new ObjectId(id) },
+                { $set: updatedData }
             )
             res.send(result)
         })
 
-        app.delete("/rooms/:id", async(req, res)=>{
-            const {id} = req.params
-            const result = await roomCollection.deleteOne({_id: new ObjectId(id)})
+        app.delete("/rooms/:id", async (req, res) => {
+            const { id } = req.params
+            const result = await roomCollection.deleteOne({ _id: new ObjectId(id) })
             res.send(result)
         })
 
-        app.get("/booking/:userId", async(req, res)=>{
-            const {userId} = req.params
-            const result = await bookingCollection.find({userId:userId}).toArray()
+        app.get("/booking/:userId", async (req, res) => {
+            const { userId } = req.params
+            const result = await bookingCollection.find({ userId: userId }).toArray()
             res.send(result)
         })
 
-        app.post("/booking", async(req, res)=>{
+        app.post("/booking",verifyToken, async (req, res) => {
             const bookingData = req.body
             console.log(bookingData, "form server");
-            
+
             const result = await bookingCollection.insertOne(bookingData)
             res.send(result)
         })
