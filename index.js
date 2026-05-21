@@ -21,7 +21,7 @@ const client = new MongoClient(uri, {
 });
 
 const JWKS = createRemoteJWKSet(
-    new URL('http://localhost:3000/api/auth/jwks')
+    new URL(`${process.env.CLIENT_URL}/api/auth/jwks`)
 )
 
 const verifyToken = async (req, res, next) => {
@@ -48,7 +48,7 @@ const verifyToken = async (req, res, next) => {
 async function run() {
     try {
 
-        await client.connect();
+        // await client.connect();
         const db = client.db("Study-Nook");
         const roomCollection = db.collection('rooms')
         const bookingCollection = db.collection('booking')
@@ -58,7 +58,12 @@ async function run() {
             res.send(result);
         })
 
-        app.get("/my-rooms/:ownerId", async (req, res) => {
+        app.get("/features", async(req, res)=>{
+            const result = await roomCollection.find().sort({ _id: -1 }).limit(6).toArray()
+            res.send(result)
+        })
+
+        app.get("/my-rooms/:ownerId",verifyToken, async (req, res) => {
             const { ownerId } = req.params
             const result = await roomCollection.find({ ownerId: ownerId }).toArray()
             res.send(result)
@@ -97,7 +102,7 @@ async function run() {
             res.send(result)
         })
 
-        app.get("/booking/:userId", async (req, res) => {
+        app.get("/booking/:userId",verifyToken, async (req, res) => {
             const { userId } = req.params
             const result = await bookingCollection.find({ userId: userId }).toArray()
             res.send(result)
@@ -111,7 +116,7 @@ async function run() {
             res.send(result)
         })
 
-        app.post("/rooms", async (req, res) => {
+        app.post("/rooms", verifyToken, async (req, res) => {
             const roomData = req.body
             // console.log(roomData, "from server");
 
@@ -120,7 +125,7 @@ async function run() {
         })
 
 
-        await client.db("admin").command({ ping: 1 });
+        // await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
         // Ensures that the client will close when you finish/error
