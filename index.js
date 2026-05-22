@@ -53,14 +53,19 @@ async function run() {
         const roomCollection = db.collection('rooms')
         const bookingCollection = db.collection('booking')
 
+        // await roomCollection.updateMany(
+        //     { hourlyRate: { $type: "string" } },
+        //     [{ $set: { hourlyRate: { $toDouble: "$hourlyRate" } } }]
+        // );
+
         app.get("/rooms", async (req, res) => {
             const { search, amenities, minRate, maxRate } = req.query;
             let query = {};
             if (search) {
-                query.name = { $regex: search, $options: "i" }; 
+                query.name = { $regex: search, $options: "i" };
             }
             if (amenities) {
-                
+
                 const amenityArray = amenities.split(",");
                 query.amenities = { $in: amenityArray };
             }
@@ -127,15 +132,40 @@ async function run() {
 
         app.post("/booking", verifyToken, async (req, res) => {
             const bookingData = req.body
+            const { roomId, date, startTime, endTime } = bookingData;
             console.log(bookingData, "form server");
 
-            const result = await bookingCollection.insertOne(bookingData)
-            res.send(result)
+            const conflictingBooking = await bookingCollection.findOne({
+                roomId: roomId,
+                date: date,
+
+                $and: [
+                    { status: { $ne: "canceled" } },
+                    { status: { $ne: "Canceled" } }
+                ],
+                $and: [
+                    { startTime: { $lt: endTime } },  // New Start < Existing End
+                    { endTime: { $gt: startTime } }   // New End > Existing Start
+                ]
+            });
+
+
+            if (conflictingBooking) {
+                return res.status(400).send({
+                    success: false,
+                    message: `This room is already reserved from ${conflictingBooking.startTime} to ${conflictingBooking.endTime} on this date.`
+                });
+            }
+
+            const result = await bookingCollection.insertOne(bookingData);
+            res.send({ success: true, result })
+
         })
 
         app.post("/rooms", verifyToken, async (req, res) => {
             const roomData = req.body
-            // console.log(roomData, "from server");
+            roomData.hourlyRate = Number(roomData.hourlyRate);
+            console.log(roomData, "from server");
 
             const result = await roomCollection.insertOne(roomData)
             res.send(result)
